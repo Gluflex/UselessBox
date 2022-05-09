@@ -11,7 +11,7 @@ Servo servoLid;  // Define Lid Servo
 Servo servoArm;  // Define Arm Servo
 CheapStepper stepper (A1,A2,A4,A5); // Define Stepper on pins A1, A2, A4, A5
 
-int buzzerPin = 6;
+int buzzerPin = A0;
 int buttonState1, buttonState2, buttonState3, buttonState4, buttonState5; // Initliazing Button States
 int zeroPosition; //Initializing zeroPosition
 
@@ -33,14 +33,12 @@ void Win (){
   }
 
   void Damage (){
-  tone(buzzerPin,NOTE_C2);
-  delay(200);
-  noTone(buzzerPin);
-  delay(200);
-  tone(buzzerPin,NOTE_FS1);
-  delay(200);
-  noTone(buzzerPin);
-    }
+    tone(buzzerPin,NOTE_C5);
+    delay(200);
+    tone(buzzerPin,NOTE_G3);
+    delay(500);
+    noTone(buzzerPin);
+  }
 
   void NewLevel(){
   
@@ -67,7 +65,7 @@ void Win (){
 void defineSwitchPins(){
   //Switch Pins, from left to right
   //Switch Pin 1
-  pinMode( 2, INPUT_PULLUP);
+  pinMode(2, INPUT_PULLUP);
   //Switch Pin 2
   pinMode(4, INPUT_PULLUP);
   //Switch Pin 3
@@ -83,7 +81,7 @@ void defineSwitchPins(){
 void servoSetup(){
   Serial.println("Servo Setup..");
   //Attaches the Servo from the Lid to Pin 6
-  servoLid.attach(A0);
+  servoLid.attach(6);
   //Attaches the Servo from the Arm to Pin A3
   servoArm.attach(A3);
 
@@ -144,10 +142,10 @@ void moveArmToSwitch(int buttonNumber){
 
     //If Arm moves to wrong position, you can change the position here! If Arm is left of button, decrease the position value. If Arm is right of button, increase the position value.
     //Attention! If the arm comes from the right, steps are added to the position automatically, you can change it in the if statements below of the respective buttons.
-    int button1Position = zeroPosition - 1090; 
-    int button2Position = zeroPosition - 810;
-    int button3Position = zeroPosition - 550;
-    int button4Position = zeroPosition - 270;
+    int button1Position = zeroPosition - 1200; 
+    int button2Position = zeroPosition - 900;
+    int button3Position = zeroPosition - 600;
+    int button4Position = zeroPosition - 300;
     int button5Position = zeroPosition; 
     int buttonPosition;
     
@@ -201,7 +199,7 @@ int checkIfButtonPressed(){
     if(buttonState1 == LOW){
       buttonPressed = 1;
     }else if(buttonState2 == LOW){
-        buttonPressed = 2;
+      buttonPressed = 2;
     }else if(buttonState3 == LOW){
       buttonPressed = 3;
     }else if(buttonState4 == LOW){
@@ -209,33 +207,50 @@ int checkIfButtonPressed(){
     }else if(buttonState5 == LOW){
       buttonPressed = 5;
     }else{
-      buttonPressed = 0;  
+      buttonPressed = 0;
     }
     return buttonPressed;
 }
 
+void openLid(){
+  servoLid.write(140);
+  delay(50);
+  }
+
+void closeLid(){
+  servoLid.write(172);
+  delay(50);
+  }
+
+void openArm(){
+  servoArm.write(110);
+  delay(200);
+  }
+
+void closeArm(){
+  servoArm.write(180);
+  delay(50);
+  }
+  
 void pressButton(){
   Serial.println("Pressing Button..");
   
-  //Open Lid
-  servoLid.write(130);
-
-  delay(50);
+  //Open Lid  
+  openLid();
+  
   //Press button
-  servoArm.write(110);
-
-  delay(500);
+  openArm();
 
   //Hide Arm
-  servoArm.write(180);
+  closeArm();
 
-  delay(50);
+  
   
   //Close Lid
-  servoLid.write(172);
+  closeLid();
 }
 
-wheelSetup(){
+void wheelSetup(){
   //Setup Channel A
   pinMode(12, OUTPUT); //Initiates Motor Channel A pin
   pinMode(9, OUTPUT); //Initiates Brake Channel A pin
@@ -249,34 +264,48 @@ wheelSetup(){
 void Demo(){
   //ServoLid works
   servoLid.write(130);
-  delay(100);
+  delay(300);
   servoLid.write(170);
-  delay(100);
+  delay(300);
   servoLid.write(130);
-  delay(100);
+  delay(300);
   servoLid.write(170);
-  delay(100);
+  delay(300);
   servoLid.write(130);
   delay(300);
   
   //ServoArm works
-  servoArm.write(110);
-  delay(100);
-  servoArm.write(180);
-  delay(100);
-  servoArm.write(110);
-  delay(100);
-  servoArm.write(180);
-  delay(100);
-  servoArm.write(110);
+  servoArm.write(130);
   delay(300);
+  servoArm.write(180);
+  delay(300);
+  servoArm.write(130);
+  delay(300);
+  servoArm.write(180);
+  delay(300);
+  servoArm.write(130);
+  delay(1000);
 
   
   //Steppers work
-  stepper.moveTo (moveToRight, zeroPosition);
-  
-  stepper.moveTo (moveToLeft, zeroPosition - 1090);
+  stepper.moveTo (true, zeroPosition);
 
+  delay(1000);
+  
+  stepper.moveTo (false, zeroPosition - 1200);
+
+  delay(1000);
+  
+  stepper.moveTo (true, zeroPosition - 600);
+
+  delay(1000);
+
+  servoArm.write(180);
+  delay(300);
+  servoLid.write(172);
+  delay(300);
+  
+  
   //Wheels work
   //*Seite* Rad bewegt sich vorwärts
   digitalWrite(12, HIGH); //Establishes forward direction of Channel A
@@ -288,7 +317,7 @@ void Demo(){
   digitalWrite(8, LOW);   //Disengage the Brake for Channel B
   analogWrite(11, 255);    //Spins the motor on Channel B at half speed
 
-  delay(3000);
+  delay(2000);
 
   digitalWrite(9, HIGH);  //Engage the Brake for Channel A
   digitalWrite(8, HIGH);  //Engage the Brake for Channel B
@@ -305,11 +334,10 @@ void Demo(){
   digitalWrite(8, LOW);   //Disengage the Brake for Channel B
   analogWrite(11, 255);    //Spins the motor on Channel B at half speed
 
-  delay(3000);
+  delay(2000);
 
   digitalWrite(9, HIGH);  //Engage the Brake for Channel A
   digitalWrite(8, HIGH);  //Engage the Brake for Channel B
-  
   }
 
 void setup() {
@@ -326,7 +354,7 @@ void setup() {
   
   //Set up Servos
   servoSetup();
-  
+
   //Set up Stepper
   stepperSetup();
   Serial.println("Stepper Done..");
@@ -335,7 +363,7 @@ void setup() {
   wheelSetup();
 
   Demo();
-  
+
   NewLevel();
 }
 
@@ -344,6 +372,6 @@ void loop() {
   int buttonPressed = checkIfButtonPressed();
   if(buttonPressed){
     moveArmToSwitch(buttonPressed);
-    Damage();
+    //Damage();
   }
 }
