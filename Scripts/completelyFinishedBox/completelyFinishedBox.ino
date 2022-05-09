@@ -27,7 +27,7 @@ Servo servoLid;  // Define Lid Servo
 Servo servoArm;  // Define Arm Servo
 CheapStepper stepper (A1,A2,A4,A5); // Define Stepper on pins A1, A2, A4, A5
 GroveTwoRGBLedMatrixClass matrix; // Define Matrix
-int buzzerPin = 6;
+int buzzerPin = A0;
 
 
 int buttonState1, buttonState2, buttonState3, buttonState4, buttonState5; // Initliazing Button States
@@ -105,7 +105,7 @@ void servoSetup(){
 
   Serial.println("Servo Setup..");
   //Attaches the Servo from the Lid to Pin 6
-  servoLid.attach(A0);
+  servoLid.attach(6);
   //Attaches the Servo from the Arm to Pin A3
   servoArm.attach(A3);
 
@@ -167,10 +167,10 @@ void moveArmToSwitch(int buttonNumber){
 
     //If Arm moves to wrong position, you can change the position here! If Arm is left of button, decrease the position value. If Arm is right of button, increase the position value.
     //Attention! If the arm comes from the right, steps are added to the position automatically, you can change it in the if statements below of the respective buttons.
-    int button1Position = zeroPosition - 1090; 
-    int button2Position = zeroPosition - 810;
-    int button3Position = zeroPosition - 550;
-    int button4Position = zeroPosition - 270;
+    int button1Position = zeroPosition - 1200; 
+    int button2Position = zeroPosition - 900;
+    int button3Position = zeroPosition - 600;
+    int button4Position = zeroPosition - 300;
     int button5Position = zeroPosition; 
     int buttonPosition;
     
@@ -258,9 +258,8 @@ void pressButton(){
   servoLid.write(172);
 }
 
-matrixShow(int n){
+void matrixShow(int n){
   //Set up Matrix
-    Wire.begin();
     Serial.println("Matrix Setup..");
     waitForMatrixReady();
     uint16_t VID = 0;
@@ -276,13 +275,14 @@ matrixShow(int n){
     case 0:
       //happy
       matrix.displayEmoji(0, 5000, false);
+      Serial.println("Showing happy face");
       break;
     case 1:
-      //damage
+      //Damage
       matrix.displayColorAnimation(5, 1000, false);
       break;
     case 2:
-      //angry
+      //Angry
       matrix.displayEmoji(4, 5000, false);
       break;
     case 3:
@@ -300,6 +300,7 @@ void setup() {
   
   //Start Terminal for Debugging
   Serial.begin(9600);
+  Wire.begin();
   Serial.println("Setup..");
   
   //Buzzer Setup
@@ -324,6 +325,6 @@ void loop() {
   if(buttonPressed){
     moveArmToSwitch(buttonPressed);
     Damage();
-    matrixShow(1);
+    //matrixShow(1);
   }
 }
