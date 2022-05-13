@@ -9,9 +9,9 @@
 #include "songs.h"
 #include <util/atomic.h>
 #include "pRNG.h"
+#include <string.h>
 
 //Global Variables
-
 Servo servoLid;  // Define Lid Servo
 Servo servoArm;  // Define Arm Servo
 CheapStepper stepper (0, 1, A2, A1); // Define Stepper on pins A5, A4, A2, A1;
@@ -21,7 +21,20 @@ pRNG prng; //Randomness
 int buzzerPin = A0;
 int buttonState1, buttonState2, buttonState3, buttonState4, buttonState5; // Initliazing Button States
 int zeroPosition; //Initializing zeroPosition
+bool driveDirection = false;
+unsigned long previousMillisBlink = 0;
+
+int level = 0;
+
+//Box Variables
 int health = 32;
+float playerStrength = 16;
+bool showingHealth = false;
+
+float driveSpeed = 0;
+float angryness = 0;
+
+//Player Variables
 
 GroveTwoRGBLedMatrixClass matrix;
 
@@ -59,7 +72,7 @@ void waitForMatrix() {
 }
 
 void startUp() {
-  matrix.setDisplayOrientation(DISPLAY_ROTATE_180);
+  matrix.setDisplayOrientation(2);
   uint64_t logo[] = {
 
     0xfffffffffffffefe,
@@ -166,7 +179,7 @@ void stepperSetup() {
   stepperCalibration();
 
   //Move to Middle
-  stepper.moveCCW (650);
+  stepper.moveCCW (700);
 }
 
 //PRE: Stepper initialised
@@ -232,7 +245,7 @@ void moveArmToSwitch(int buttonNumber) {
   else {
     stepper.moveTo (moveToLeft, buttonPosition);
     if (moveDir != moveToRight) {
-      stepper.moveCCW(50);
+      stepper.moveCCW(150);
     }
     moveDir = moveToLeft;
   }
@@ -290,11 +303,8 @@ void pressButton() {
   //Hide Arm
   closeArm();
 
-  int buttonPressed = checkIfButtonPressed();
-  if (buttonPressed) {
-    moveArmToSwitch(buttonPressed);
-  }
-
+  tickCheck();
+  
   //Close Lid
   closeLid();
 }
@@ -309,7 +319,7 @@ void wheelSetup() {
   pinMode(8, OUTPUT);  //Initiates Brake Channel A pin
 }
 
-//This function is called at the end of Setup to demo that our motors work.
+//This function is called at the end of Setup to greet the user.
 void Greeting() {
   bool finalStep = false;
   unsigned int currentStep = 0;
@@ -495,14 +505,218 @@ void Greeting() {
   }
 
 }
+long long convert(int n) {
+  long long bin = 0;
+  int rem, i = 1;
+
+  while (n!=0) {
+    rem = n % 2;
+    n /= 2;
+    bin += rem * i;
+    i *= 10;
+  }
+
+  return bin;
+}
+
+void combinationHandler(){
+  int currentCombination = convert(prng.getRndInt()%256);
+  matrix.displayNumber(currentCombination, 3000, true, 0xfe);
+  delay(10000);
+  }
+void healthFill(){
+  matrix.setDisplayOrientation(0);
+  matrix.displayEmoji(11, 1000, false);
+  delay(250);
+  matrix.displayEmoji(10, 1000, true);
+  delay(250);
+
+  matrix.setDisplayOrientation(1);
+  health = 32;
+  for (int i = 0; i <= 16; ++i) {
+    healthFill(i);
+    matrix.displayBar(i * 2, 60 , true, 0x00);
+    delay(60);
+  }
+}
+
+void newLevel(int level){
+  healthFill();
+  showingHealth = false;
+  switch(level){
+    case 1:
+      driveSpeed = 0;
+      angryness = 0;
+      playerStrength = 16;
+      break;
+    case 2:
+      driveSpeed = 0;
+      angryness = 0;
+      playerStrength = 16;
+      break;
+    case 3:
+      driveSpeed = 0;
+      angryness = 0;
+      playerStrength = 11;
+      break;
+    case 4:
+      driveSpeed = 10;
+      angryness = 0;
+      playerStrength = 11;
+      break;
+    case 5:
+      driveSpeed = 25;
+      angryness = 10;
+      playerStrength = 11;
+      break;
+    case 6:
+      driveSpeed = 40;
+      angryness = 20;
+      playerStrength = 10;
+      break;
+    case 7:
+      driveSpeed = 50;
+      angryness = 30;
+      playerStrength = 8;
+      break;
+    case 8:
+      driveSpeed = 60;
+      angryness = 40;
+      playerStrength = 5;
+      break;
+    case 9:
+      driveSpeed = 70;
+      angryness = 60;
+      playerStrength = 4;
+      break;
+    case 10:
+      driveSpeed = 100;
+      angryness = 80;
+      playerStrength = 2;
+      break;
+    case 11:
+      //winLevel();
+      break;
+  }
+  
+}
+
+void checkCurrentEmotion(int& currentEmotion){
+  if(level <= 2){
+    currentEmotion = 0;
+  }
+  else if (angryness <= 10){
+    currentEmotion = 7;
+  }
+  else if (angryness <= 30){
+    currentEmotion = 8;
+  }
+  else if (angryness <= 60){
+    currentEmotion = 3;
+  }
+  else if (angryness <= 90){
+    currentEmotion = 4;
+  }
+  else if (angryness <= 100){
+    currentEmotion = 25;
+  }
+}
+
+void showHealth(){
+  matrix.setDisplayOrientation(1);
+  matrix.displayBar(health, 60, true, 0x00);
+}
+
+void showEnemy(){
+  int currentEmotion;
+  matrix.setDisplayOrientation(0);
+  checkCurrentEmotion(currentEmotion);
+  matrix.displayEmoji(currentEmotion, 60, true);
+}
+
+void healthEnemyBlink(unsigned long& currentMillisBlink){
+  if (currentMillisBlink - previousMillisBlink >= 2000){
+    previousMillisBlink = currentMillisBlink;
+    if (showingHealth == true) {
+      showEnemy();
+      showingHealth = false;
+    } else {
+      showHealth();
+      showingHealth = true;
+    }
+  }
+}
+
+void checkIfDirectionChange(){
+  int changeDirection = random(10000);
+    if(changeDirection == 0){
+    driveDirection = !driveDirection;
+    digitalWrite(9, HIGH);  //Engage the Brake for Channel A
+    digitalWrite(8, HIGH);
+    //driving();
+  }
+}
+void driving(){
+    //Motor A forward @ currentDriveSpeed
+    digitalWrite(12, driveDirection);  //Establishes backward direction of Channel A
+    digitalWrite(9, LOW);   //Disengage the Brake for Channel A
+    analogWrite(3, driveSpeed);    //Spins the motor on Channel A at half speed
+    
+    //Motor B forward @ currentDriveSpeed
+    digitalWrite(13, !driveDirection); //Establishes forward direction of Channel B
+    digitalWrite(8, LOW);   //Disengage the Brake for Channel B
+    analogWrite(11, driveSpeed);   //Spins the motor on Channel B at full speed
+    delay(200);
+
+  
+}
+
+//PRE: alive
+//POST: dead
+void death(){
+  newLevel(++level);
+  
+  }
+//PRE: Player fulfilled task
+//POST: Box received damage
+void damageHandler(){
+  matrix.setDisplayOrientation(0);
+  matrix.displayEmoji(12, 400, true);
+  health -= playerStrength;
+  delay(400);
+  
+  if(health > 0){
+    showingHealth = false;
+  } else{
+    death();
+  }
+  
+}
+
+void tickCheck(unsigned long& currentMillisBlink){
+  int buttonPressed = checkIfButtonPressed();
+  if (buttonPressed) {
+    moveArmToSwitch(buttonPressed);
+  }
+  healthEnemyBlink(currentMillisBlink);
+  
+  checkIfDirectionChange();
+}
+
+void tickCheck(){
+  int buttonPressed = checkIfButtonPressed();
+  if (buttonPressed) {
+    moveArmToSwitch(buttonPressed);
+  }
+}
 
 void setup() {
   Wire.begin(); // Matrix Wire Begins
   waitForMatrix();// Waits one second
-
-  startUp(); // Startup Sequence
+  combinationHandler();
+  //startUp(); // Startup Sequence
   //Buzzer Setup
-  randomSeed(prng.getRndLong());//Creates a random Seed, important that it's before Buzzer is connected (i think)
+  randomSeed(prng.getRndLong());
   
   pinMode (buzzerPin, OUTPUT);
 
@@ -520,31 +734,13 @@ void setup() {
 
   matrix.displayClockwise(true, true, 9500, false);
 
-  Greeting();
+  //Greeting();
 
-  matrix.displayEmoji(11, 1000, false);
-  delay(300);
-  matrix.displayEmoji(10, 1000, true);
-  delay(400);
-
-  matrix.setDisplayOrientation(1);
-
-  for (int i = 0; i <= 16; ++i) {
-    healthFill(i);
-    matrix.displayBar(i * 2, 60 , false, 0x00);
-    delay(60);
-  }
-  matrix.displayBar(32, 700 , true, 0x00);
-
-  delay(300);
-
-  //NewLevel();
+  newLevel(++level);
 }
 
 void loop() {
-
-  int buttonPressed = checkIfButtonPressed();
-  if (buttonPressed) {
-    moveArmToSwitch(buttonPressed);
-  }
+  unsigned long currentMillisBlink = millis();
+  tickCheck(currentMillisBlink);
+  
 }
