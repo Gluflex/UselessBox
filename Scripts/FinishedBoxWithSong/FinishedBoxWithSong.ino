@@ -468,7 +468,38 @@ void Greeting() {
         ++currentStep;
       }
       //STEPPER END
+      
+      //Driving Start
+        digitalWrite(12, HIGH); //Establishes forward direction of Channel A
+        digitalWrite(9, LOW);   //Disengage the Brake for Channel A
+        analogWrite(3, 255);   //Spins the motor on Channel A at speed
 
+        digitalWrite(13, LOW);  //Establishes backward direction of Channel B
+        digitalWrite(8, LOW);   //Disengage the Brake for Channel B
+        analogWrite(11, 255);    //Spins the motor on Channel B at full speed
+
+        delay(2000);
+
+        digitalWrite(9, HIGH);  //Engage the Brake for Channel A
+        digitalWrite(8, HIGH);  //Engage the Brake for Channel B
+
+        delay(1000);
+
+        digitalWrite(12, LOW);  //Establishes backward direction of Channel A
+        digitalWrite(9, LOW);   //Disengage the Brake for Channel A
+        analogWrite(3, 255);    //Spins the motor on Channel A at full speed
+
+        digitalWrite(13, HIGH); //Establishes forward direction of Channel B
+        digitalWrite(8, LOW);   //Disengage the Brake for Channel B
+        analogWrite(11, 255);   //Spins the motor on Channel B at full speed
+
+        delay(2000);
+
+        digitalWrite(9, HIGH);  //Engage the Brake for Channel A
+        digitalWrite(8, HIGH);  //Engage the Brake for Channel B
+        delay(500);
+
+      //Driving End
       //WINK START
       else if (currentMillis - previousMillis >= 400 && currentStep == 18) {
         matrix.setDisplayOrientation(DISPLAY_ROTATE_0);
@@ -528,6 +559,7 @@ void healthFill() {
 
   matrix.setDisplayOrientation(1);
   health = 32;
+  oneUpSound();
   for (int i = 0; i <= 16; ++i) {
     healthFill(i);
     matrix.displayBar(i * 2, 60, true, 0x00);
